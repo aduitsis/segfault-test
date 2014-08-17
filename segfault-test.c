@@ -11,7 +11,7 @@
 static long int counter;
 
 static jmp_buf buf;
-static int savesigs; 
+/* static int savesigs;  */
 
 volatile sig_atomic_t eflag = 0;
 
@@ -22,7 +22,7 @@ void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
 	siglongjmp(buf,1);
 }
 
-void main(int argc,char *argv[]) {
+int main(int argc,char *argv[]) {
 	printf("hello world\n");
 
 	struct sigaction sa,oldact;
@@ -38,6 +38,7 @@ void main(int argc,char *argv[]) {
 		//printf("%x\n",val[i]);
 	}
 
+	printf("Starting from %lx and stopping at %lx \n",val[0],val[1]);
 
 	int previous_cannot_read = -1;
 
@@ -49,16 +50,20 @@ void main(int argc,char *argv[]) {
 		perror("Cannot set signal handler");
 	}
 
-	for( counter=val[0] ; counter<=val[1] ;  ) {
+	counter = val[0];
+	while( 1 ) {
 		int cannot_read = sigsetjmp(buf,1);
+
+		/* printf("counter=%lx < val[1]=%lx\n",counter,val[1]); */
+		if ( counter > val[1] ) break;
 
 		if( counter != val[0] ) {
 			if( cannot_read != previous_cannot_read ) {
 				if(cannot_read) {
-					printf("address %x unreadable\n",counter-1);
+					printf("address %lx unreadable\n",counter-1);
 				}
 				else {
-					printf("address %x readable\n",counter-1);
+					printf("address %lx readable\n",counter-1);
 				}
 			}
 		}
@@ -66,10 +71,10 @@ void main(int argc,char *argv[]) {
 
 		uint8_t *pointer = (uint8_t*) counter;
 
-		if( counter % 1024 == 0 ) printf("%x\n",counter); 
+		/* if( counter % 1024 == 0 ) printf("%lx\n",counter); */
 
-		uint8_t dummy = *pointer;
-		//printf("%02x",*pointer);
+		uint8_t dummy = *pointer; /* this should produce a segfault */
+		/* printf("%02x",*pointer); */
 
 
 		counter+=1024;
